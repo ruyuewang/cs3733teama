@@ -53,6 +53,7 @@ public class PathfindingController {
     private boolean listen = true;
 
     public void genPath(MapNode origin, MapNode dest) {
+
         if(listen) {
             if(origin == null || dest == null) {
                 return;
