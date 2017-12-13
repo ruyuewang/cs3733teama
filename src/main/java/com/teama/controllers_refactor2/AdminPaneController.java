@@ -90,6 +90,7 @@ public class AdminPaneController extends HamburgerController{
     @FXML
     void onSettingsClick(ActionEvent event) {
         loadPane(new SettingsPopOut());
+
     }
 
     @FXML
