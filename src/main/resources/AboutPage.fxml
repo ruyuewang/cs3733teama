@@ -36,7 +36,7 @@
                <content>
                   <ImageView fitHeight="686.0" fitWidth="516.0">
                      <image>
-                        <Image url="@AboutPagePicture.png" />
+                        <Image url="@aboutPagePicture.png" />
                      </image>
                   </ImageView>
                </content>
