@@ -1,12 +1,17 @@
 package com.teama.controllers_refactor2;
 
+import com.jfoenix.controls.JFXButton;
+import com.jfoenix.controls.JFXComboBox;
 import com.jfoenix.controls.JFXTextField;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import com.teama.ProgramSettings;
+import com.teama.controllers.PathfindingController;
+import com.teama.controllers.SearchBarController;
 import com.teama.mapdrawingsubsystem.MapDrawingSubsystem;
 import com.teama.mapsubsystem.MapSubsystem;
+import com.teama.mapsubsystem.data.Location;
 import com.teama.mapsubsystem.data.MapNode;
 import com.teama.mapsubsystem.data.MapNodeData;
 import com.teama.mapsubsystem.pathfinding.DirectionAdapter;
@@ -15,17 +20,21 @@ import com.teama.mapsubsystem.pathfinding.Path;
 import com.teama.mapsubsystem.pathfinding.Direction;
 import com.teama.mapsubsystem.pathfinding.TextDirections;
 import com.teama.mapsubsystem.pathfinding.TextualDirections;
+import javafx.beans.Observable;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Text;
 import javafx.event.ActionEvent;
@@ -38,17 +47,11 @@ public class DirectionController extends HamburgerController{
     Boolean accessibilityMode = false;
     private MapDrawingSubsystem mapDrawing = MapDrawingSubsystem.getInstance();
     private MapSubsystem mapSubsystem = MapSubsystem.getInstance();
-
-//    private MapDrawingSubsystem mapDrawing = MapDrawingSubsystem.getInstance();
-//    private MapSubsystem mapSubsystem = MapSubsystem.getInstance();
-//    private MapNode tempMapNodeStart = MapSubsystem.getInstance().getNode("AHALL00901");
-//    private MapNode tempMapNodeEnd = MapSubsystem.getInstance().getNode("AHALL00401");
-//    private Path tempPath = mapSubsystem.getPath(tempMapNodeStart,tempMapNodeEnd);
+    private PathfindingController pathfindingController;
 
 
-
-
-
+    @FXML
+    private ImageView goBtn;
 
     @FXML
     private ResourceBundle resources;
@@ -57,13 +60,13 @@ public class DirectionController extends HamburgerController{
     private URL location;
 
     @FXML
-    private JFXTextField yourLocationBar;
+    private JFXComboBox<String> yourLocationBar;
 
     @FXML
     private ImageView accessibilityBtn;
 
     @FXML
-    private JFXTextField destinationBar;
+    private JFXComboBox<String> destinationBar;
 
     @FXML
     private ImageView switchBtn;
@@ -88,8 +91,25 @@ public class DirectionController extends HamburgerController{
 
     @FXML
     private AnchorPane mainPane;
+    @FXML private HBox hbxFloorButtons;
+    @FXML
+    void onGoBtnClicked(MouseEvent event) {
+        MapNode newOrigin  = mapSubsystem.getNodeByDescription(yourLocationBar.getEditor().getText(),true);
+        MapNode newEnd = mapSubsystem.getNodeByDescription(destinationBar.getEditor().getText(),true);
 
 
+
+        pathfindingController.genPath(newOrigin,newEnd);
+        ProgramSettings.getInstance().setPathOriginNodeProp(newOrigin);
+        ProgramSettings.getInstance().setPathEndNodeProp(newEnd);
+
+        System.out.println("Start location is:" + yourLocationBar.getEditor().getText());
+        System.out.println("Destination is:" + destinationBar.getEditor().getText());
+
+
+
+
+    }
     @FXML
     void onAccessibilityBtnClicked(MouseEvent event) {
         System.out.println(accessibilityMode);
@@ -109,7 +129,7 @@ public class DirectionController extends HamburgerController{
     }
     //TODO make this return the fxml path
     @Override public String getFXMLPath(){
-        return "/Direction.fxml";
+        return "/Direction2.fxml";
     }
     @Override public void onOpen(){}
     @Override public void onClose(){}
@@ -117,6 +137,7 @@ public class DirectionController extends HamburgerController{
     @FXML
     void onDestinationBarClicked(ActionEvent event) {
 
+        destinationBar.setPromptText("Destination");
     }
 
     // Dealing with the closeBtn
@@ -149,10 +170,16 @@ public class DirectionController extends HamburgerController{
 
     @FXML
     void onSwitchBtnClicked(MouseEvent event) {
-        String yourLocation = yourLocationBar.getText();
-        String destination = destinationBar.getText();
-        yourLocationBar.setText(destination);
-        destinationBar.setText(yourLocation);
+        MapNode newOrigin  = mapSubsystem.getNodeByDescription(yourLocationBar.getEditor().getText(),true);
+        MapNode newEnd = mapSubsystem.getNodeByDescription(destinationBar.getEditor().getText(),true);
+        String yourLocation = yourLocationBar.getEditor().getText();
+        String destination = destinationBar.getEditor().getText();
+        yourLocationBar.getEditor().setText(destination);
+        destinationBar.getEditor().setText(yourLocation);
+        ProgramSettings.getInstance().setPathOriginNodeProp(newEnd);
+        ProgramSettings.getInstance().setPathEndNodeProp(newOrigin);
+
+        onGoBtnClicked(null);
     }
 
 
@@ -160,77 +187,137 @@ public class DirectionController extends HamburgerController{
     void onYourLocationBarClicked(ActionEvent event) {
 
     }
-//    stepCol.setText("stepNum");
-//    descriptionCol.setText("description");
-//    distanceCol.setText("distance");
-//    directionCol.setText("direction");
+
 
 
 
     public void initialize(){
 
 
-        //requestList.prefHeightProperty().bind(mainPane.heightProperty());
+
+        stepCol.setText("Step");
+        descriptionCol.setText("Description");
+        distanceCol.setText("Distance");
+        directionCol.setText("Direction");
 
 
 
-
-//        ProgramSettings.getInstance().setPathOriginNodeProp(tempMapNodeStart);
-//        ProgramSettings.getInstance().setPathEndNodeProp(tempMapNodeEnd);
-//        ProgramSettings.getInstance().setCurrentDisplayedPathProp(tempPath);
+        ReadOnlyObjectProperty<Path> pathObjectProperty = ProgramSettings.getInstance().getCurrentDisplayedPathProp();
 
 
+        if(pathObjectProperty.getValue() != null) {
+            putDirectionsOnScreen(pathObjectProperty.getValue());
+        }
+        pathObjectProperty.addListener((a, b, currentPath) -> {
+            putDirectionsOnScreen(currentPath);
+        });
+
+        stepCol.setCellValueFactory(
+                new PropertyValueFactory<>("stepNum"));
+        descriptionCol.setCellValueFactory(
+                new PropertyValueFactory<>("description"));
+        distanceCol.setCellValueFactory(
+                new PropertyValueFactory<>("distance"));
+        directionCol.setCellValueFactory(
+                new PropertyValueFactory<>("direction"));
+        textDirections.setFixedCellSize(75); // cells need to be bigger than default
+
+        textDirections.setRowFactory(tv -> {
+            TableRow<DirectionAdapter> row = new TableRow<>();
+            row.setAlignment(Pos.CENTER);
+            return row;
+        });
+
+        SearchBarController searchbar1 = new SearchBarController(yourLocationBar, false);
+        SearchBarController searchbar2 = new SearchBarController(destinationBar, false);
 
 
-//        ReadOnlyObjectProperty<Path> pathObjectProperty = ProgramSettings.getInstance().getCurrentDisplayedPathProp();
+        MapNode init = ProgramSettings.getInstance().getPathEndNodeProp().getValue();
+        if(init!= null) {
+
+            destinationBar.setPromptText("");
+            destinationBar.getEditor().setText(init.getLongDescription());
+        }
 //
-//        if(pathObjectProperty.getValue() != null) {
-//            putDirectionsOnScreen(pathObjectProperty.getValue());
-//        }
-//        pathObjectProperty.addListener((a, b, currentPath) -> {
-//            putDirectionsOnScreen(currentPath);
-//        });
-//
-//        stepCol.setCellValueFactory(
-//                new PropertyValueFactory<>("stepNum"));
-//        descriptionCol.setCellValueFactory(
-//                new PropertyValueFactory<>("description"));
-//        distanceCol.setCellValueFactory(
-//                new PropertyValueFactory<>("distance"));
-//        directionCol.setCellValueFactory(
-//                new PropertyValueFactory<>("direction"));
-//        textDirections.setFixedCellSize(75); // cells need to be bigger than default
-//
-//        textDirections.setRowFactory(tv -> {
-//            TableRow<DirectionAdapter> row = new TableRow<>();
-//            row.setAlignment(Pos.CENTER);
-//            return row;
-//        });
-//
-//
-//        // Make a listener on the tableview to focus on the node relating to the direction when selected
-//        textDirections.getSelectionModel().selectedItemProperty().addListener((a) -> {
-//            mapDrawing.setViewportCenter(textDirections.getSelectionModel().getSelectedItem().getLocToFocus());
-//        });
-//
-//    }
-//    private ArrayList<Long> filterFloorListeners = new ArrayList<>();
-//    private DirectionsGenerator directionsGenerator = new TextualDirections();
-//    private void putDirectionsOnScreen(Path path) {
-//        TextDirections directions = directionsGenerator.generateDirections(path);
-//        ObservableList<DirectionAdapter> directionVals = FXCollections.observableArrayList();
-//        int num = 1;
-//        for(Direction d : directions.getDirections()) {
-//            directionVals.add(new DirectionAdapter(num, d));
-//            num++;
-//        }
-//        textDirections.setItems(directionVals);
+        ProgramSettings.getInstance().getPathOriginNodeProp().addListener((a) -> {
+            yourLocationBar.getEditor().setText(ProgramSettings.getInstance().getPathOriginNodeProp().getValue().getLongDescription());
+        });
 
-        // make the combo box automatically change to the start of the path
-        //originNodeCombo.getEditor().setText(path.getStartNode().getLongDescription());
+        ProgramSettings.getInstance().getPathEndNodeProp().addListener((a) -> {
+            destinationBar.getEditor().setText(ProgramSettings.getInstance().getPathEndNodeProp().getValue().getLongDescription());
+        });
+
+
+
+        // Make a listener on the tableview to focus on the node relating to the direction when selected
+        textDirections.getSelectionModel().selectedItemProperty().addListener((a) -> {
+            mapDrawing.setViewportCenter(textDirections.getSelectionModel().getSelectedItem().getLocToFocus());
+        });
+
+    }
+    private ArrayList<Long> filterFloorListeners = new ArrayList<>();
+    private DirectionsGenerator directionsGenerator = new TextualDirections();
+    private void putDirectionsOnScreen(Path path) {
+        TextDirections directions = directionsGenerator.generateDirections(path);
+        ObservableList<DirectionAdapter> directionVals = FXCollections.observableArrayList();
+        int num = 1;
+        for(Direction d : directions.getDirections()) {
+            directionVals.add(new DirectionAdapter(num, d));
+            num++;
+        }
+        textDirections.setItems(directionVals);
+
+        //add buttons for floor.
+        addButtonsForFloors(directions.getFloorDirections());
+
     }
 
+    private void addButtonsForFloors(ArrayList<Location> locs) {
+        hbxFloorButtons.getChildren().clear(); // clean the box.
+        hbxFloorButtons.setSpacing(30);
+        hbxFloorButtons.setPadding(new Insets(0, 10, 0, 90));
+
+        Location startloc = locs.get(0);
+        JFXButton tempBtn =new JFXButton();
+        tempBtn.setPrefWidth(70);
+        tempBtn.setPrefHeight(30);
+        tempBtn.setText(startloc.getLevel().toString());
+        tempBtn.getStyleClass().add("hbox_floorBtn_start");
+
+        tempBtn.setOnAction((event) -> {
+            mapDrawing.setViewportCenter(startloc);});
+        hbxFloorButtons.getChildren().add(tempBtn);
 
 
+        for (int i=1;i<locs.size()-1;++i)
+        {
+            Location location = locs.get(i);
+             tempBtn =new JFXButton();
+            tempBtn.setPrefWidth(70);
+            tempBtn.setPrefHeight(30);
+            tempBtn.setText(location.getLevel().toString());
+            tempBtn.getStyleClass().add("hbox_floorBtn");
+            tempBtn.setOnAction((event) -> {
+                mapDrawing.setViewportCenter(location);});
+            hbxFloorButtons.getChildren().add(tempBtn);
+        }
+        if (locs.size()>1) {
+            Location endloc = locs.get(locs.size() - 1);
+            tempBtn = new JFXButton();
+            tempBtn.setPrefWidth(70);
+            tempBtn.setPrefHeight(30);
+            tempBtn.setText(endloc.getLevel().toString());
+            tempBtn.getStyleClass().add("hbox_floorBtn_end");
 
+            tempBtn.setOnAction((event) -> {
+                mapDrawing.setViewportCenter(endloc);
+            });
+            hbxFloorButtons.getChildren().add(tempBtn);
+        }
+    }
+
+    public void setFinder(PathfindingController finder)
+    {
+        this.pathfindingController=finder;
+    }
 }
