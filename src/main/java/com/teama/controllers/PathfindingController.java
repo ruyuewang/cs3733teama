@@ -177,22 +177,16 @@ public class PathfindingController {
         if (curPathID != null) {
             drawingSubsystem.unDrawPath(curPathID);
         }
-
         curPathID = drawingSubsystem.drawPath(path);
 
         // Update the origin, end node and path without regenerating the path that was just created
         listen = false;
         ProgramSettings.getInstance().setCurrentDisplayedPathProp(path);
-        ProgramSettings.getInstance().setPathOriginNodeProp(origin);
         ProgramSettings.getInstance().setPathEndNodeProp(path.getEndNode());
         listen = true;
 
         // additional new line, center the middle node of path when drawn.
-
-        drawingSubsystem.setViewportCenter(path.getNodes().get((path.getNodes().size()-1)/2).getCoordinate());
-
+        drawingSubsystem.setViewportCenter(path.getNodes().get((path.getNodes().size()-1)).getCoordinate());
         // Open the directions pop out
-        mainSidebarMap.get(PopOutType.DIRECTIONS).handle(null);
-
     }
 }
